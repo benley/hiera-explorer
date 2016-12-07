@@ -5,7 +5,8 @@
            [clojure.string :as str]
            [clojure.pprint :refer [pprint]]
            [ring.middleware.params :refer [wrap-params]]
-           [prone.middleware :as prone]))
+           [prone.middleware :as prone]
+           [cheshire.core :as cheshire]))
 
 (def config-file (or (System/getenv "HIERA_CONFIG")
                      "resources/example/hiera.yaml"))
@@ -91,6 +92,13 @@
          {:id (str panel-id \- (:id tab))}
          (:content tab)])]]]])
 
+(defn stringify [value]
+  (let [my-pprint (cheshire/create-pretty-printer
+                    (assoc cheshire/default-pretty-print-options
+                           :indent-arrays? true
+                           :object-field-value-separator ": "))]
+    [:pre (cheshire/generate-string value {:pretty my-pprint})]))
+
 (defn show-merged-data [data]
   (make-panel "Merged Data"
               "datafile-panel-merged"
@@ -105,7 +113,7 @@
                            (for [[k v] (sort data)]
                              [:tr {:class (str "hier-level-" (:index v))}
                               [:td (str k)]
-                              [:td (str (:value v))]
+                              [:td (stringify (:value v))]
                               [:td (str (:source v))]])]]}]))
 
 (defn show-data-files [hierarchy]
@@ -122,7 +130,7 @@
                              [:tr [:th "Key"] [:th "Value"]]]
                             [:tbody
                              (for [[k v] (sort parsed-content)]
-                               [:tr [:td (str k)] [:td (str v)]])]]}
+                               [:tr [:td (str k)] [:td (stringify v)]])]]}
                  {:id "raw"
                   :title "Raw"
                   :content [:pre raw-content]}])))
